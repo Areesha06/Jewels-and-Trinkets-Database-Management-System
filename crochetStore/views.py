@@ -80,8 +80,10 @@ def shop(request, current_page = 1, category = '', subcategory = ''):
     total_pages = (len(result)//limit_on_single_page)+1
     pages = [i+1 for i in range(total_pages)]
 
+    resultSected = result[(current_page-1)*limit_on_single_page : current_page*limit_on_single_page]
+
     return render(request, "webPages/FrontEnd_ClientView/shopExtension/product.html", {
-        "products": result,
+        "products": resultSected,
         "pages": pages,
         "current_page": current_page
     })
