@@ -196,15 +196,39 @@
                 <div class="pagination col-12 mt-20">
                     <ul>
                         {% for page in pages %}
-                        {% if page == current_page %}
-                            <li class="active"><a href="#">1</a></li>
-                        {% else %}
-                            <li><a href="#">{{page}}</a></li>
-                        {% endif %}
+                            {% if page == current_page %}
+                                <li class="active"><a href="#">{{ page }}</a></li>
+                            {% else %}
+                                <li>
+                                    {% if category and subcategory %}
+                                        <a href="{% url 'shop' page category subcategory %}">{{ page }}</a>
+                                    {% elif category %}
+                                        <a href="{% url 'shop' page category %}">{{ page }}</a>
+                                    {% else %}
+                                        <a href="{% url 'shop' page %}">{{ page }}</a>
+                                    {% endif %}
+                                </li>
+                            {% endif %}
                         {% endfor %}
-                        <li class="arrows"><a href="#"><i class="fa fa-angle-right"></i></a></li>
+                        <li class="arrows">
+                            {% if current_page < pages|length %}
+                                {% with next_page=current_page|add:1 %}
+                                    {% if category and subcategory %}
+                                        <a href="{% url 'shop' next_page category subcategory %}"><i class="fa fa-angle-right"></i></a>
+                                    {% elif category %}
+                                        <a href="{% url 'shop' next_page category %}"><i class="fa fa-angle-right"></i></a>
+                                    {% else %}
+                                        <a href="{% url 'shop' next_page %}"><i class="fa fa-angle-right"></i></a>
+                                    {% endif %}
+                                {% endwith %}
+                            {% else %}
+                                <a href="#"><i class="fa fa-angle-right"></i></a>
+                            {% endif %}
+                        </li>
                     </ul>
-                </div><!-- Pagination End -->
+                </div>
+                <!-- Pagination End -->
+
                 
             </div><!-- Product Wrapper End-->
             

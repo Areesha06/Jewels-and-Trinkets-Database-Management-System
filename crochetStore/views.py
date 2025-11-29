@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import HttpResponse
 from .database.data import *
+import base64
 
 # Create your views here.
 
@@ -28,7 +29,7 @@ def about(request, complain = ''):
 
 def shop(request, current_page = 1, category = '', subcategory = ''):
     
-    limit_on_single_page = 10
+    limit_on_single_page = 12
     result = []
 
     
@@ -76,6 +77,11 @@ def shop(request, current_page = 1, category = '', subcategory = ''):
         ''')
 
 
+    for item in result:
+        if item.get("image"):
+            item["image_base64"] = base64.b64encode(item["image"]).decode("utf-8")
+        else:
+            item["image_base64"] = None
 
     total_pages = (len(result)//limit_on_single_page)+1
     pages = [i+1 for i in range(total_pages)]
