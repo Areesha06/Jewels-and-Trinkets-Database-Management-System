@@ -6,6 +6,54 @@ def custom_sql_select(query):
         columns = [col[0] for col in cursor.description]
         return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
+def login_sql_select(email, password):
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM Users WHERE email = %s AND password = %s", [email, password])
+        columns = [col[0] for col in cursor.description]
+        login_data = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        if login_data != []:
+            return login_data[0]
+        else:
+            return False 
+
+def register_sql_insert(name, email, password):
+    with connection.cursor() as cursor:
+        cursor.execute("INSERT INTO Users (name, email, password) VALUES (%s, %s, %s)", [name, email, password])
+        connection.commit()
+        return cursor.lastrowid
+
+
+def update_profile_sql(user_id, name=None, email=None, phone=None):
+    """
+    Update the Users table for a given user_id.
+    Only updates fields that are not None.
+    """
+    fields = []
+    values = []
+
+    if name is not None:
+        fields.append("name = %s")
+        values.append(name)
+    if email is not None:
+        fields.append("email = %s")
+        values.append(email)
+    if phone is not None:
+        fields.append("phone = %s")
+        values.append(phone)
+
+    if not fields:
+        return False  # nothing to update
+
+    values.append(user_id)  # for WHERE clause
+
+    sql = f"UPDATE Users SET {', '.join(fields)} WHERE user_id = %s"
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, values)
+        connection.commit()
+        return cursor.rowcount > 0  # True if at least 1 row updated
+
         
 
 def create_dummy_db():
