@@ -11,7 +11,13 @@
         <!-- Image Wrapper -->
         <div class="image">
             <!-- Image -->
-            <a href="product-details.html" class="img"><img src="{% static 'webPages/FrontEnd_ClientView/img/product/1.jpg' %}" alt="Product"></a>
+            <a href="product-details.html" class="img">
+                {% if product.image_base64 %}
+                    <img src="data:image/jpeg;base64,{{ product.image_base64 }}" alt="{{ product.itemName }}">
+                {% else %}
+                    <img src="{% static 'webPages/FrontEnd_ClientView/img/product/default.jpg' %}">
+                {% endif %}
+            </a>
             <!-- Wishlist -->
             <a href="#" class="wishlist"><i class="fa fa-heart-o"></i></a>
             <!-- Label -->
