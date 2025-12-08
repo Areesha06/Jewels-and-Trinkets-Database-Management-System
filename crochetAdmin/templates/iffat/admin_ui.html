@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="en">
+    {% load static %}
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Crochet Shop — Admin / Staff Panel</title>
+  <link rel="stylesheet" href="{% static 'iffat/css/bootstrap.min.css' %}">
+  <link rel="stylesheet" href="{% static 'iffat/css/font-awesome.min.css' %}">
+  <link rel="stylesheet" href="{% static 'iffat/style.css' %}">
+  <style>
+    /* Small panel-specific styles to keep it self-contained */
+    body{padding-top:70px;background:#f7f7f9}
+    .side-nav{min-height:86vh}
+    .badge-low{background:#e74c3c;color:#fff}
+    .role-pill{cursor:pointer}
+    .disabled-btn{pointer-events:none;opacity:0.6}
+    .nowrap{white-space:nowrap}
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top border-bottom">
+  <a class="navbar-brand" href="/">
+    <!-- logo image + site name -->
+    <img src="{% static 'iffat/assets/img/logo.png' %}" alt="Jewels & Trinkets" style="height:34px; margin-right:8px; vertical-align:middle;">
+    <span style="vertical-align:middle;">Jewels and Trinkets</span>
+  </a>
+
+  <div class="ml-auto d-flex align-items-center">
+    <div class="mr-3">Role:</div>
+    <div class="btn-group btn-group-sm" role="group" aria-label="role-switch">
+      <button id="role-admin" class="btn btn-outline-primary role-pill">Admin</button>
+      <button id="role-staff" class="btn btn-outline-secondary role-pill">Staff</button>
+    </div>
+  </div>
+</nav>
+
+<div class="container-fluid">
+  <div class="row">
+    <aside class="col-md-2 bg-white side-nav p-3 border-right">
+      <ul class="nav flex-column">
+        <li class="nav-item"><a class="nav-link active" href="#dashboard" data-toggle="tab">Dashboard</a></li>
+<li class="nav-item">
+  <a class="nav-link" href="#orders" data-toggle="tab">
+    Orders <span id="orders-badge" class="badge badge-pill badge-info ml-1">0</span>
+  </a>
+</li>
+        <!-- <li class="nav-item"><a class="nav-link" href="#inventory" data-toggle="tab">Inventory</a></li> -->
+        <li class="nav-item"><a class="nav-link" href="#products" data-toggle="tab">Products</a></li>
+        <!-- <li class="nav-item"><a class="nav-link" href="#suppliers" data-toggle="tab">Suppliers <small class="admin-only text-muted">(Admin)</small></a></li> -->
+        <li class="nav-item"><a class="nav-link" href="#users" data-toggle="tab">Users</a></li>
+        <li class="nav-item"><a class="nav-link" href="#reports" data-toggle="tab">Reports</a></li>
+        <li class="nav-item"><a class="nav-link" href="#settings" data-toggle="tab">Settings <small class="admin-only text-muted">(Admin)</small></a></li>
+      </ul>
+    </aside>
+
+    <main class="col-md-10 tab-content p-4">
+      <!-- Dashboard -->
+      <section id="dashboard" class="tab-pane active">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3>Staff / Admin Dashboard</h3>
+          <div>
+            <small class="text-muted">Signed in as: <strong id="current-role">Admin</strong></small>
+          </div>
+        </div>
+
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="card p-3">
+              <h6>Pending Orders</h6>
+              <h2 id="pending-count">3</h2>
+              <p class="mb-0 text-muted">Requires attention</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3">
+              <h6>Low Stock Items</h6>
+              <h2 id="lowstock-count">2</h2>
+              <p class="mb-0 text-muted">Stock below threshold</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3">
+              <h6>Custom Requests</h6>
+              <h2 id="custom-count">1</h2>
+              <p class="mb-0 text-muted">Awaiting review</p>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card p-3">
+              <h6>Today's Sales</h6>
+              <h2 id="todays-sales">Rs.120/-</h2>
+              <p class="mb-0 text-muted">Revenue</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <h5>Recent Orders</h5>
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th class="nowrap">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="recent-orders">
+                  <!-- sample rows -->
+                  <tr>
+                    <td>1001</td>
+                    <td>Fatima R.</td>
+                    <td>3</td>
+                    <td>Rs.45/-</td>
+                    <td><span class="badge badge-warning">Processing</span></td>
+                    <td class="nowrap">
+                      <button class="btn btn-sm btn-outline-primary" onclick="openOrder(1001)">View</button>
+                      <button class="btn btn-sm btn-success ml-1 admin-action" data-action="ship">Mark Shipped</button>
+                      <button class="btn btn-sm btn-danger ml-1 admin-only" data-action="cancel">Cancel</button>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>1000</td>
+                    <td>Ali K.</td>
+                    <td>1</td>
+                    <td>Rs.12/-</td>
+                    <td><span class="badge badge-success">Delivered</span></td>
+                    <td class="nowrap"><button class="btn btn-sm btn-outline-primary">View</button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Orders -->
+      <section id="orders" class="tab-pane">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3>Order Management</h3>
+          <div>
+            <input id="order-search" class="form-control form-control-sm" placeholder="Search orders..." style="min-width:220px">
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            <div class="table-responsive">
+              <table class="table table-striped" id="orders-table">
+                <thead>
+                  <tr><th>Order</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th>Actions</th></tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1003</td>
+                    <td>Saira J.</td>
+                    <td>2025-09-15</td>
+                    <td>Rs.60/-</td>
+                    <td>
+                      <select class="form-control form-control-sm status-select">
+                        <option>Processing</option>
+                        <option>Shipped</option>
+                        <option>Delivered</option>
+                        <option>Cancelled</option>
+                      </select>
+                    </td>
+                    <td>
+                      <button class="btn btn-sm btn-primary">Save</button>
+                      <button class="btn btn-sm btn-outline-secondary ml-1 admin-only">Invoice</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+<!-- Products -->
+<section id="products" class="tab-pane">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Product Management</h3>
+    <div>
+      <button id="btn-open-add" class="btn btn-sm btn-success admin-only">Add Product</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="products-table" class="table table-hover">
+          <thead>
+            <tr>
+              <th>ID</th><th>Image</th><th>Name</th><th>Price</th><th>Stock</th><th>Category</th><th>Description</th><th class="nowrap">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-id="3001">
+              <td>3001</td>
+              <td><img src="{% static 'iffat/assets/img/products/pocket.jpg' %}" alt="Blanket" width="48"></td>
+              <td>Crochet small pocket pouch</td>
+              <td>Rs.45/-</td>
+              <td>3</td>
+              <td>Accessories</td>
+              <td>Cuto small pockets</td>
+              <td class="nowrap">
+                <button class="btn btn-sm btn-outline-primary btn-edit" data-id="3001">Edit</button>
+                <button class="btn btn-sm btn-danger ml-1 admin-only btn-delete" data-id="3001">Delete</button>
+              </td>
+            </tr>
+
+            <tr data-id="3002">
+              <td>3002</td>
+              <td><img src="{% static 'iffat/assets/img/products/keychain.jpg' %}" alt="Keychain" width="48"></td>
+              <td>Crochet Keychain - Munchkin</td>
+              <td>Rs.8/-</td>
+              <td>15</td>
+              <td>Keychain</td>
+              <td>Mini teddy keychain, will make you smile</td>
+              <td class="nowrap">
+                <button class="btn btn-sm btn-outline-primary btn-edit" data-id="3002">Edit</button>
+                <button class="btn btn-sm btn-danger ml-1 admin-only btn-delete" data-id="3002">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add / Edit Product Modal -->
+  <div class="modal fade" id="addProductModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <form id="product-form" class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Add / Edit Product</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+        </div>
+
+        <div class="modal-body">
+          <input type="hidden" id="prod-id">
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="prod-name">Product Name</label>
+              <input id="prod-name" class="form-control" required>
+            </div>
+            <div class="form-group col-md-3">
+              <label for="prod-price">Price (PKR)</label>
+              <input id="prod-price" type="number" step="0.01" class="form-control" required>
+            </div>
+            <div class="form-group col-md-3">
+              <label for="prod-stock">Stock</label>
+              <input id="prod-stock" type="number" class="form-control" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-4">
+              <label for="prod-category">Category</label>
+              <select id="prod-category" class="form-control">
+                <option>Sweater</option>
+                <option>Keychain</option>
+                <option>Yarn</option>
+                <option>Tools</option>
+                <option>Accessories</option>
+                <option>Coasters</option>
+              </select>
+            </div>
+            <div class="form-group col-md-8">
+              <label for="prod-short">Short Description</label>
+              <input id="prod-short" class="form-control" placeholder="Short summary ">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="prod-desc">Full Description </label>
+            <textarea id="prod-desc" class="form-control" rows="4" placeholder="Detailed product description"></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-8">
+              <label for="prod-image">Product Image URL</label>
+              <input id="prod-image" class="form-control" placeholder="assets/img/products/example.png">
+              <small class="form-text text-muted">Upload images to the assets folder and paste the URL here.</small>
+            </div>
+            <div class="form-group col-md-4 text-center">
+              <label>Preview</label>
+              <div style="border:1px solid #eee;padding:8px">
+                <img id="prod-image-preview" src="{% static 'iffat/assets/img/products/blanket.png' %}" alt="preview" style="max-width:100%;height:80px;object-fit:contain">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">Save Product</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</section>
+
+
+      <!-- Users -->
+<section id="users" class="tab-pane">
+  <h3>User Management</h3>
+  <div class="card">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table id="users-table" class="table">
+          <thead>
+            <tr><th>User</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            <!-- populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+<!-- User Details / Edit Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <form id="user-details-form" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">User Details</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="ud-id">
+        <div class="row">
+          <div class="col-md-6">
+            <h6>Profile</h6>
+            <div class="form-group"><label>Name</label><input id="ud-name" class="form-control"></div>
+            <div class="form-group"><label>Email</label><input id="ud-email" class="form-control"></div>
+            <div class="form-group"><label>Role</label>
+              <select id="ud-role" class="form-control">
+                <option>customer</option>
+                <option>staff</option>
+                <option>admin</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Phone</label><input id="ud-phone" class="form-control"></div>
+            <div class="form-group"><label>Notes</label><textarea id="ud-notes" class="form-control" rows="2"></textarea></div>
+          </div>
+
+          <div class="col-md-6">
+            <div id="staff-info" style="display:none">
+              <h6>Staff Profile</h6>
+              <div class="form-group"><label>Job Title</label><input id="ud-job" class="form-control"></div>
+              <div class="form-group"><label>Joined</label><input id="ud-joined" class="form-control"></div>
+            </div>
+
+            <div id="customer-stats" style="display:none">
+              <h6>Customer Summary</h6>
+              <p>Total Orders: <strong id="ud-total-orders">0</strong></p>
+              <p>Pending Orders: <strong id="ud-pending-orders">0</strong></p>
+              <p>Total Revenue: <strong id="ud-total-revenue">Rs.0/-</strong></p>
+
+              <h6>Order History</h6>
+              <div class="table-responsive" style="max-height:220px;overflow:auto">
+                <table class="table table-sm">
+                  <thead><tr><th>Order#</th><th>Date</th><th>Status</th><th>Total</th></tr></thead>
+                  <tbody id="ud-orders-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button id="ud-save" type="submit" class="btn btn-success">Save</button>
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+      <!-- Reports -->
+      <section id="reports" class="tab-pane">
+        <h3>Reports</h3>
+        <div class="card mb-3 p-3">
+          <strong>Sales Summary</strong> 
+          <p class="text-muted">Sales summary will show here including top-selling products</p>
+        </div>
+        <div class="card p-3">
+          <strong>Inventory Value</strong>
+          <p class="text-muted">Total stock value </p>
+        </div>
+      </section>
+
+     <!-- Settings -->
+<!-- Settings -->
+<section id="settings" class="tab-pane">
+  <h3>Settings <small class="text-muted">(Admin only)</small></h3>
+
+  <!-- Admin Toggle -->
+  <div class="form-check form-switch mb-4 admin-only">
+    <input class="form-check-input" type="checkbox" id="adminToggle" checked>
+    <label class="form-check-label" for="adminToggle">Admin Mode</label>
+  </div>
+
+  <div class="card p-3">
+
+    <!-- Payment Gateways -->
+    <h6><i class="bi bi-credit-card"></i> Payment Gateways</h6>
+    <p id="paymentDesc">Cash, Card</p>
+    <button class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#paymentModal" class="admin-action">Edit Description</button>
+
+    <!-- Shipping -->
+    <h6><i class="bi bi-truck"></i> Shipping Options</h6>
+    <p id="shippingDesc">Shipping zones and rates.</p>
+    <button class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#shippingModal" class="admin-action">Edit Description</button>
+
+    <!-- Tax Settings -->
+    <h6><i class="bi bi-receipt"></i> Tax Settings</h6>
+    <p id="taxDesc">Configure tax rates applied to orders.</p>
+    <button class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#taxModal" class="admin-action">Edit Tax</button>
+
+    <!-- Store Policies -->
+    <h6><i class="bi bi-file-earmark-text"></i> Store Policies</h6>
+    <p id="policyDesc">Return, refund, and privacy policies.</p>
+    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#policyModal" class="admin-action">Edit Policies</button>
+  </div>
+</section>
+
+<!-- MODALS -->
+
+<!-- Payment Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Payment Description</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <textarea class="form-control" id="paymentInput"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="savePayment()" data-bs-dismiss="modal">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Shipping Modal -->
+<div class="modal fade" id="shippingModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Shipping Description</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <textarea class="form-control" id="shippingInput"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="saveShipping()" data-bs-dismiss="modal">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tax Modal -->
+<div class="modal fade" id="taxModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Tax Settings</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <textarea class="form-control" id="taxInput"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="saveTax()" data-bs-dismiss="modal">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Policies Modal -->
+<div class="modal fade" id="policyModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Store Policies</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <textarea class="form-control" id="policyInput"></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="savePolicy()" data-bs-dismiss="modal">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'iffat/js/vendor/jquery-1.12.0.min.js' %}"></script>
+<script src="{% static 'iffat/js/popper.min.js' %}"></script>
+<script src="{% static 'iffat/js/bootstrap.min.js' %}"></script>
+<script src="{% static 'iffat/js/all_js.js' %}"></script>
+</body>
+</html>

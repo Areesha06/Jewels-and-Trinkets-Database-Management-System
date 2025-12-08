@@ -32,6 +32,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'crochetStore',
+    'crochetAdmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -116,8 +117,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 #STATIC_URL = 'static/'
-STATIC_URL = '/crochetStore/static/'
-STATIC_ROOT = '/crochetStore/static'
+# STATIC_URL = '/crochetStore/static/'
+# STATIC_ROOT = '/crochetStore/static'
+
+STATIC_URL = 'static/'
+
+STATICFILES_DIRS = []
+
+STATIC_ROOT = BASE_DIR / "staticfiles"  # for collectstatic (used in deployment)
+
 
 
 # Default primary key field type
