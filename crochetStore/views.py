@@ -1,61 +1,119 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
-from .database.data import *
-import base64
-from django.shortcuts import redirect
 from django.contrib import messages
+import base64
+import math
+
+from .database.data import (
+    custom_sql_select,
+    fetch_items,
+    get_item_by_id,
+    get_items_by_ids,
+    login_sql_select,
+    register_user_if_new,
+    update_profile_sql,
+    get_user_by_id,
+    get_user_addresses,
+    create_address,
+    link_user_address,
+    delete_user_address,
+    get_user_orders,
+)
 
 # Create your views here.
 
 
-class User:
-    def __init__(self):
-        self.is_authenticated = False
-        self.username = ""
-        self.userID = 0
-        self.email = ""
-        self.phone = ""
-        self.role = ""
-        self.createdat = ""
+SESSION_DEFAULTS = {
+    "login_status": False,
+    "user_id": 0,
+    "username": "",
+    "email": "",
+    "phone": "",
+    "role": "",
+    "created_at": "",
+}
 
-user = User()
 
-def defualtSettings(request):
-    if 'login_status' not in request.session:
-            request.session['login_status'] = False
-            request.session['user_id'] = 0
-            request.session['username'] = ""
-            request.session['email'] = ""
-            request.session['phone'] = ""
-            request.session['role'] = ""
-            request.session['createdat'] = ""
-    
-    user.is_authenticated = request.session['login_status'] 
-    user.userID = request.session['user_id']
-    user.username = request.session['username']
-    user.email = request.session['email']
-    user.phone = request.session['phone']
-    user.role = request.session['role']
-    user.createdat = request.session['createdat']
+def _ensure_session_defaults(request):
+    """
+    Guarantee all user-related keys exist in the session.
+    """
+    for key, value in SESSION_DEFAULTS.items():
+        request.session.setdefault(key, value)
+
+
+def _session_user_context(request):
+    """
+    Build a per-request user context dictionary from the session.
+    """
+    _ensure_session_defaults(request)
+
+    # If we have a logged-in user, refresh their data from the database
+    user_id = request.session.get("user_id")
+    if request.session.get("login_status") and user_id:
+        latest_user = get_user_by_id(user_id)
+        if latest_user:
+            _populate_session_from_user(request, latest_user)
+        else:
+            # User no longer exists; clear login-related session data
+            request.session["login_status"] = False
+            request.session["user_id"] = 0
+            request.session["username"] = ""
+            request.session["email"] = ""
+            request.session["phone"] = ""
+            request.session["role"] = ""
+            request.session["created_at"] = ""
+
+    return {
+        "is_authenticated": request.session["login_status"],
+        "userID": request.session["user_id"],
+        "username": request.session["username"],
+        "email": request.session["email"],
+        "phone": request.session["phone"],
+        "role": request.session["role"],
+        "created_at": request.session["created_at"],
+    }
+
+
+def _populate_session_from_user(request, user_row):
+    """
+    Persist database user fields into the session.
+    """
+    request.session["login_status"] = True
+    request.session["user_id"] = user_row.get("user_id", 0)
+    request.session["username"] = user_row.get("name", "")
+    request.session["email"] = user_row.get("email", "")
+    request.session["phone"] = user_row.get("phone", "")
+    request.session["role"] = user_row.get("role", "")
+    request.session["created_at"] = str(user_row.get("created_at", ""))
 
 
 def index(request):
+    user_ctx = _session_user_context(request)
+    # Load a small set of featured products for the homepage
+    products = fetch_items()[:6]
 
-    defualtSettings(request)
+    for item in products:
+        if item.get("image"):
+            item["image_base64"] = base64.b64encode(item["image"]).decode("utf-8")
+        else:
+            item["image_base64"] = None
 
-    return render(request, "webPages/FrontEnd_ClientView/index.html", {
-        "user": user
-    })
+    return render(
+        request,
+        "webPages/FrontEnd_ClientView/index.html",
+        {
+            "user": user_ctx,
+            "featured_products": products,
+        },
+    )
 
 
 
 
 
 def about(request, complain = ''):
-
-
-    defualtSettings(request)
-
+    user_ctx = _session_user_context(request)
 
     if complain != '':
         result = custom_sql_select(f'''
@@ -66,7 +124,7 @@ def about(request, complain = ''):
         return HttpResponse(str(result))
     else:
         return render(request, "webPages/FrontEnd_ClientView/about.html", {
-            "user": user
+            "user": user_ctx
         })
 
 
@@ -74,57 +132,10 @@ def about(request, complain = ''):
 
 
 def shop(request, current_page = 1, category = '', subcategory = ''):
-
-
-    defualtSettings(request)
-    
+    user_ctx = _session_user_context(request)
     limit_on_single_page = 12
-    result = []
 
-    
-    if category != '' and subcategory != '':
-        result = custom_sql_select(f'''
-                                   
-            SELECT * FROM Items 
-            WHERE item_id IN (
-                SELECT item_id FROM SubCategory
-                WHERE cat_id IN (
-                    SELECT cat_id FROM Category
-                    WHERE categoryName = '{category}'
-                ) AND subCatName = '{subcategory}'
-            )
-        
-        ''')
-    elif category != '':
-        result = custom_sql_select(f'''
-                                   
-            SELECT * FROM Items 
-            WHERE item_id IN (
-                SELECT item_id FROM SubCategory
-                WHERE cat_id IN (
-                    SELECT cat_id FROM Category
-                    WHERE categoryName = '{category}'
-                ) 
-            )
-        
-        ''')
-    elif subcategory != '':
-        result = custom_sql_select(f'''
-                                   
-            SELECT * FROM Items 
-            WHERE item_id IN (
-                SELECT item_id FROM SubCategory
-                WHERE subCatName = '{subcategory}'
-            )
-        
-        ''')
-    else:
-        result = custom_sql_select(f'''
-                                   
-            SELECT * FROM Items 
-                                   
-        ''')
-
+    result = fetch_items(category or None, subcategory or None)
 
     for item in result:
         if item.get("image"):
@@ -132,113 +143,164 @@ def shop(request, current_page = 1, category = '', subcategory = ''):
         else:
             item["image_base64"] = None
 
-    total_pages = (len(result)//limit_on_single_page)+1
-    pages = [i+1 for i in range(total_pages)]
+    total_pages = max(1, math.ceil(len(result) / limit_on_single_page))
+    pages = [i + 1 for i in range(total_pages)]
 
-    resultSected = result[(current_page-1)*limit_on_single_page : current_page*limit_on_single_page]
+    current_page = max(1, min(current_page, total_pages))
+    start = (current_page - 1) * limit_on_single_page
+    end = current_page * limit_on_single_page
+    result_selected = result[start:end]
 
-    return render(request, "webPages/FrontEnd_ClientView/shopExtension/product.html", {
-        "products": resultSected,
-        "pages": pages,
-        "user": user,
-        "current_page": current_page
-    })
+    return render(
+        request,
+        "webPages/FrontEnd_ClientView/shopExtension/product.html",
+        {
+            "products": result_selected,
+            "pages": pages,
+            "user": user_ctx,
+            "current_page": current_page,
+        },
+    )
 
 
 def login(request):
-
-    defualtSettings(request)
-
-    return render(request, "webPages/FrontEnd_ClientView/login-register.html", {
-        "user": user
-    })
+    user_ctx = _session_user_context(request)
+    return render(
+        request,
+        "webPages/FrontEnd_ClientView/login-register.html",
+        {
+            "user": user_ctx,
+        },
+    )
 
 def myaccount(request):
-
-
-   
     if request.method == "POST":
         if "login_submit" in request.POST:
-            print("Login form submitted")
-            print(request.POST.dict())
-
-            email = request.POST.get("login_email")
-            password = request.POST.get("login_password")
+            email = request.POST.get("login_email", "").strip()
+            password = request.POST.get("login_password", "").strip()
 
             login_data = login_sql_select(email, password)
 
             if login_data and isinstance(login_data, dict):
-                request.session['login_status'] = True  # always set this if login_data exists
+                _populate_session_from_user(request, login_data)
+                messages.success(request, "Logged in successfully.")
+                return redirect("myaccount")
 
-                if "user_id" in login_data:
-                    request.session['user_id'] = login_data["user_id"]
-
-                if "name" in login_data:
-                    request.session['username'] = login_data["name"]
-
-                if "email" in login_data:
-                    request.session['email'] = login_data["email"]
-
-                if "phone" in login_data:
-                    request.session['phone'] = login_data["phone"]
-
-                if "role" in login_data:
-                    request.session['role'] = login_data["role"]
-
-                if "createdat" in login_data:
-                    request.session['createdat'] = str(login_data["createdat"])
-
-            else:
-                return HttpResponse("Not found in DATABASE")
+            messages.error(request, "Invalid email or password.")
+            return redirect("login")
 
         elif "register_submit" in request.POST:
-            print("Register form submitted")
-            print(request.POST.dict())
-
-            name = request.POST.get("reg_name")
-            email = request.POST.get("reg_email")
-            password = request.POST.get("reg_password")
-            confirm_password = request.POST.get("reg_confirm_password")
+            name = request.POST.get("reg_name", "").strip()
+            email = request.POST.get("reg_email", "").strip()
+            password = request.POST.get("reg_password", "").strip()
+            confirm_password = request.POST.get("reg_confirm_password", "").strip()
+            phone = request.POST.get("reg_phone", "").strip()
 
             if password != confirm_password:
-                return HttpResponse("Password and Confirm Password do not match.")
+                messages.error(request, "Password and confirm password do not match.")
+                return redirect("login")
 
-            register_sql_insert(name, email, password)
+            user_id = register_user_if_new(name, email, password, phone or None)
+            if user_id is None:
+                messages.error(request, "An account with this email already exists.")
+                return redirect("login")
 
             login_data = login_sql_select(email, password)
-
             if login_data and isinstance(login_data, dict):
-                request.session['login_status'] = True  # always set this if login_data exists
+                _populate_session_from_user(request, login_data)
+                messages.success(request, "Account created and logged in.")
+                return redirect("myaccount")
 
-                if "user_id" in login_data:
-                    request.session['user_id'] = login_data["user_id"]
+            messages.error(request, "Registration failed, please try again.")
+            return redirect("login")
 
-                if "name" in login_data:
-                    request.session['username'] = login_data["name"]
+    user_ctx = _session_user_context(request)
+    addresses = []
+    orders = []
+    if user_ctx["is_authenticated"] and user_ctx["userID"]:
+        addresses = get_user_addresses(user_ctx["userID"])
+        orders = get_user_orders(user_ctx["userID"])
 
-                if "email" in login_data:
-                    request.session['email'] = login_data["email"]
-
-                if "phone" in login_data:
-                    request.session['phone'] = login_data["phone"]
-
-                if "role" in login_data:
-                    request.session['role'] = login_data["role"]
-
-                if "createdat" in login_data:
-                    request.session['createdat'] = str(login_data["createdat"])
-
-            else:
-                return HttpResponse("Not found in DATABASE")
-
-    
-
-    defualtSettings(request)
     context = {
-        "user": user
+        "user": user_ctx,
+        "addresses": addresses,
+        "preferred_payment_method": request.session.get("preferred_payment_method", ""),
+        "orders": orders,
     }
 
     return render(request, "webPages/FrontEnd_ClientView/my-account.html", context)
+
+
+def manage_addresses(request):
+    """
+    Handle add/remove of user addresses from the My Account page.
+    Uses Address and UserAddress tables as defined in schema.txt.
+    """
+    _ensure_session_defaults(request)
+    user_id = request.session.get("user_id")
+    if not user_id:
+        messages.error(request, "You must be logged in to manage addresses.")
+        return redirect("login")
+
+    if request.method == "POST":
+        if "add_address" in request.POST:
+            province = request.POST.get("province", "").strip()
+            city = request.POST.get("city", "").strip()
+            area = request.POST.get("area", "").strip()
+            house_number = request.POST.get("houseNumber", "").strip()
+
+            if province and city and area and house_number:
+                addr_id = create_address(province, city, area, house_number)
+                link_user_address(user_id, addr_id)
+                messages.success(request, "Address added successfully.")
+            else:
+                messages.error(request, "All address fields are required.")
+
+        elif "delete_address" in request.POST:
+            try:
+                addr_id = int(request.POST.get("delete_address"))
+                delete_user_address(user_id, addr_id)
+                messages.success(request, "Address deleted successfully.")
+            except (TypeError, ValueError):
+                messages.error(request, "Invalid address selected.")
+
+    return redirect("myaccount")
+
+
+def manage_payment_method(request):
+    """
+    Store a user's preferred payment method in the session.
+    This will later be used as a default when creating Orders.paymentMethod.
+    """
+    _ensure_session_defaults(request)
+    user_id = request.session.get("user_id")
+    if not user_id:
+        messages.error(request, "You must be logged in to manage payment methods.")
+        return redirect("login")
+
+    if request.method == "POST":
+        payment_method = request.POST.get("payment_method", "").strip()
+        if payment_method:
+            request.session["preferred_payment_method"] = payment_method
+            request.session.modified = True
+            messages.success(request, "Preferred payment method updated.")
+        else:
+            messages.error(request, "Please select a payment method.")
+
+    return redirect("myaccount")
+
+
+def under_construction(request):
+    """
+    Simple view to render the under-construction page.
+    Useful for sections defined in the schema but not yet implemented.
+    """
+    user_ctx = _session_user_context(request)
+    return render(
+        request,
+        "webPages/FrontEnd_ClientView/under-construction.html",
+        {"user": user_ctx},
+    )
 
 
 def logout_view(request):
@@ -247,6 +309,7 @@ def logout_view(request):
 
 def update_profile(request):
     if request.method == "POST":
+        _ensure_session_defaults(request)
         user_id = request.session.get("user_id")
         if not user_id:
             messages.error(request, "You must be logged in to update your profile.")
@@ -272,3 +335,274 @@ def update_profile(request):
 
     # If GET request, just redirect to account page
     return redirect("myaccount")
+
+
+def product_detail(request, product_id):
+    user_ctx = _session_user_context(request)
+
+    product = get_item_by_id(product_id)
+
+    if not product:
+        return HttpResponse("Product not found.")
+
+    if product.get("image"):
+        product["image_base64"] = base64.b64encode(product["image"]).decode("utf-8")
+    else:
+        product["image_base64"] = None
+
+    return render(
+        request,
+        "webPages/FrontEnd_ClientView/product-details.html",
+        {
+            "product": product,
+            "user": user_ctx,
+        },
+    )
+
+
+def _get_cart(request):
+    """
+    Internal helper to read the cart from the session.
+    Cart is stored as {item_id: quantity}.
+    """
+    raw_cart = request.session.get("cart", {})
+    # normalise keys to int
+    cart = {}
+    for k, v in raw_cart.items():
+        try:
+            item_id = int(k)
+            qty = int(v)
+        except (TypeError, ValueError):
+            continue
+        if qty > 0:
+            cart[item_id] = qty
+    return cart
+
+
+def _save_cart(request, cart):
+    # store with string keys to keep session serialisable
+    request.session["cart"] = {str(k): int(v) for k, v in cart.items() if int(v) > 0}
+    request.session.modified = True
+
+
+def add_to_cart(request, product_id):
+    """
+    Add a product to the cart (or increase its quantity).
+    Quantity can optionally be provided via POST or ?qty=.
+    """
+    cart = _get_cart(request)
+
+    qty = 1
+    if request.method == "POST":
+        qty_str = request.POST.get("quantity") or request.POST.get("qty")
+    else:
+        qty_str = request.GET.get("qty")
+
+    if qty_str:
+        try:
+            qty = max(1, int(qty_str))
+        except ValueError:
+            qty = 1
+
+    cart[product_id] = cart.get(product_id, 0) + qty
+    _save_cart(request, cart)
+
+    # redirect back if a "next" parameter is provided
+    next_url = request.POST.get("next") or request.GET.get("next")
+    if next_url:
+        return redirect(next_url)
+    return redirect("cart")
+
+
+def cart_view(request):
+    """
+    Display and manage the shopping cart.
+    """
+    user_ctx = _session_user_context(request)
+
+    cart = _get_cart(request)
+
+    if request.method == "POST":
+        # remove single item
+        if "remove" in request.POST:
+            try:
+                item_id = int(request.POST.get("remove"))
+                if item_id in cart:
+                    cart.pop(item_id)
+                    _save_cart(request, cart)
+            except (TypeError, ValueError):
+                pass
+            return redirect("cart")
+
+        # update all quantities
+        if "update_cart" in request.POST:
+            new_cart = {}
+            for key, value in request.POST.items():
+                if not key.startswith("qty_"):
+                    continue
+                try:
+                    item_id = int(key.split("_", 1)[1])
+                    qty = int(value)
+                except (ValueError, IndexError):
+                    continue
+                if qty > 0:
+                    new_cart[item_id] = qty
+            cart = new_cart
+            _save_cart(request, cart)
+            return redirect("cart")
+
+    item_ids = list(cart.keys())
+    items = get_items_by_ids(item_ids)
+    items_by_id = {item["item_id"]: item for item in items}
+
+    cart_items = []
+    subtotal = 0
+
+    for item_id, qty in cart.items():
+        item = items_by_id.get(item_id)
+        if not item:
+            continue
+
+        if item.get("image"):
+            item["image_base64"] = base64.b64encode(item["image"]).decode("utf-8")
+        else:
+            item["image_base64"] = None
+
+        price = item.get("basePrice") or 0
+        line_total = price * qty
+        subtotal += line_total
+
+        cart_items.append(
+            {
+                "item": item,
+                "quantity": qty,
+                "line_total": line_total,
+            }
+        )
+
+    context = {
+        "user": user_ctx,
+        "cart_items": cart_items,
+        "subtotal": subtotal,
+        "grand_total": subtotal,  # no shipping/tax logic yet
+    }
+
+    return render(request, "webPages/FrontEnd_ClientView/cart.html", context)
+
+
+def checkout(request):
+    """
+    Simple checkout page based on the current cart.
+    Does not persist orders but clears the cart on "place order".
+    """
+    user_ctx = _session_user_context(request)
+
+    cart = _get_cart(request)
+    item_ids = list(cart.keys())
+    items = get_items_by_ids(item_ids)
+    items_by_id = {item["item_id"]: item for item in items}
+
+    order_lines = []
+    subtotal = 0
+
+    for item_id, qty in cart.items():
+        item = items_by_id.get(item_id)
+        if not item:
+            continue
+        price = item.get("basePrice") or 0
+        line_total = price * qty
+        subtotal += line_total
+        order_lines.append(
+            {
+                "item": item,
+                "quantity": qty,
+                "line_total": line_total,
+            }
+        )
+
+    grand_total = subtotal
+
+    if request.method == "POST" and "place_order" in request.POST:
+        # In a real project you would insert into an Orders table here.
+        _save_cart(request, {})
+        messages.success(request, "Your order has been placed successfully.")
+        return redirect("index")
+
+    context = {
+        "user": user_ctx,
+        "order_lines": order_lines,
+        "subtotal": subtotal,
+        "grand_total": grand_total,
+    }
+    return render(request, "webPages/FrontEnd_ClientView/checkout.html", context)
+
+
+def _get_wishlist(request):
+    """
+    Internal helper to read the wishlist from the session.
+    Wishlist is stored as a list of item_ids.
+    """
+    raw = request.session.get("wishlist", [])
+    wishlist = []
+    for v in raw:
+        try:
+            wishlist.append(int(v))
+        except (TypeError, ValueError):
+            continue
+    return list(dict.fromkeys(wishlist))  # deduplicate, keep order
+
+
+def _save_wishlist(request, wishlist):
+    request.session["wishlist"] = [int(i) for i in wishlist]
+    request.session.modified = True
+
+
+def add_to_wishlist(request, product_id):
+    wishlist = _get_wishlist(request)
+    if product_id not in wishlist:
+        wishlist.append(product_id)
+        _save_wishlist(request, wishlist)
+
+    next_url = request.POST.get("next") or request.GET.get("next")
+    if next_url:
+        return redirect(next_url)
+    return redirect("wishlist")
+
+
+def wishlist_view(request):
+    user_ctx = _session_user_context(request)
+
+    wishlist = _get_wishlist(request)
+
+    if request.method == "POST":
+        if "remove" in request.POST:
+            try:
+                item_id = int(request.POST.get("remove"))
+                wishlist = [i for i in wishlist if i != item_id]
+                _save_wishlist(request, wishlist)
+            except (TypeError, ValueError):
+                pass
+            return redirect("wishlist")
+
+    items = get_items_by_ids(wishlist)
+    items_by_id = {item["item_id"]: item for item in items}
+
+    wishlist_items = []
+    for item_id in wishlist:
+        item = items_by_id.get(item_id)
+        if not item:
+            continue
+
+        if item.get("image"):
+            item["image_base64"] = base64.b64encode(item["image"]).decode("utf-8")
+        else:
+            item["image_base64"] = None
+
+        wishlist_items.append(item)
+
+    context = {
+        "user": user_ctx,
+        "wishlist_items": wishlist_items,
+    }
+
+    return render(request, "webPages/FrontEnd_ClientView/wishlist.html", context)

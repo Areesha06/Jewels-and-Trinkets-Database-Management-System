@@ -11,7 +11,7 @@
         <!-- Image Wrapper -->
         <div class="image">
             <!-- Image -->
-            <a href="product-details.html" class="img">
+            <a href="{% url 'product_detail' product.item_id %}" class="img">
                 {% if product.image_base64 %}
                     <img src="data:image/jpeg;base64,{{ product.image_base64 }}" alt="{{ product.itemName }}">
                 {% else %}
@@ -19,7 +19,9 @@
                 {% endif %}
             </a>
             <!-- Wishlist -->
-            <a href="#" class="wishlist"><i class="fa fa-heart-o"></i></a>
+            <a href="{% url 'add_to_wishlist' product.item_id %}?next={{ request.path }}" class="wishlist">
+                <i class="fa fa-heart-o"></i>
+            </a>
             <!-- Label -->
             <span class="label">New</span>
         </div>
@@ -46,7 +48,7 @@
             
             <!-- Action Button -->
             <div class="action-button fix">
-                <a href="#">add to cart</a>
+                <a href="{% url 'add_to_cart' product.item_id %}?qty=1&next={{ request.path }}">add to cart</a>
             </div>
             
         </div>

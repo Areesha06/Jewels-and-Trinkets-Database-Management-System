@@ -28,11 +28,8 @@
   </a>
 
   <div class="ml-auto d-flex align-items-center">
-    <div class="mr-3">Role:</div>
-    <div class="btn-group btn-group-sm" role="group" aria-label="role-switch">
-      <button id="role-admin" class="btn btn-outline-primary role-pill">Admin</button>
-      <button id="role-staff" class="btn btn-outline-secondary role-pill">Staff</button>
-    </div>
+    <div class="mr-3">Signed in as: <strong>{{ username }}</strong> ({{ user_role|capfirst }})</div>
+    <a href="/logout/" class="btn btn-sm btn-outline-danger ml-2">Logout</a>
   </div>
 </nav>
 
@@ -47,11 +44,12 @@
   </a>
 </li>
         <!-- <li class="nav-item"><a class="nav-link" href="#inventory" data-toggle="tab">Inventory</a></li> -->
-        <li class="nav-item"><a class="nav-link" href="#products" data-toggle="tab">Products</a></li>
-        <!-- <li class="nav-item"><a class="nav-link" href="#suppliers" data-toggle="tab">Suppliers <small class="admin-only text-muted">(Admin)</small></a></li> -->
+        <li class="nav-item"><a class="nav-link" href="#products" data-toggle="tab">Products{% if user_role == 'admin' %} <small class="text-muted">(Admin)</small>{% endif %}</a></li>
         <li class="nav-item"><a class="nav-link" href="#users" data-toggle="tab">Users</a></li>
         <li class="nav-item"><a class="nav-link" href="#reports" data-toggle="tab">Reports</a></li>
-        <li class="nav-item"><a class="nav-link" href="#settings" data-toggle="tab">Settings <small class="admin-only text-muted">(Admin)</small></a></li>
+        {% if user_role == 'admin' %}
+        <li class="nav-item"><a class="nav-link" href="#settings" data-toggle="tab">Settings <small class="text-muted">(Admin)</small></a></li>
+        {% endif %}
       </ul>
     </aside>
 
@@ -59,38 +57,35 @@
       <!-- Dashboard -->
       <section id="dashboard" class="tab-pane active">
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <h3>Staff / Admin Dashboard</h3>
-          <div>
-            <small class="text-muted">Signed in as: <strong id="current-role">Admin</strong></small>
-          </div>
+          <h3>{% if user_role == 'admin' %}Admin{% else %}Staff{% endif %} Dashboard</h3>
         </div>
 
         <div class="row mb-4">
           <div class="col-md-3">
             <div class="card p-3">
               <h6>Pending Orders</h6>
-              <h2 id="pending-count">3</h2>
+              <h2 id="pending-count">{{ pending_count }}</h2>
               <p class="mb-0 text-muted">Requires attention</p>
             </div>
           </div>
           <div class="col-md-3">
             <div class="card p-3">
               <h6>Low Stock Items</h6>
-              <h2 id="lowstock-count">2</h2>
+              <h2 id="lowstock-count">{{ low_stock_count }}</h2>
               <p class="mb-0 text-muted">Stock below threshold</p>
             </div>
           </div>
           <div class="col-md-3">
             <div class="card p-3">
               <h6>Custom Requests</h6>
-              <h2 id="custom-count">1</h2>
+              <h2 id="custom-count">{{ custom_count }}</h2>
               <p class="mb-0 text-muted">Awaiting review</p>
             </div>
           </div>
           <div class="col-md-3">
             <div class="card p-3">
               <h6>Today's Sales</h6>
-              <h2 id="todays-sales">Rs.120/-</h2>
+              <h2 id="todays-sales">Rs.{{ todays_sales }}/-</h2>
               <p class="mb-0 text-muted">Revenue</p>
             </div>
           </div>
@@ -105,34 +100,35 @@
                   <tr>
                     <th>Order #</th>
                     <th>Customer</th>
-                    <th>Items</th>
                     <th>Total</th>
                     <th>Status</th>
                     <th class="nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody id="recent-orders">
-                  <!-- sample rows -->
+                  {% for order in orders %}
                   <tr>
-                    <td>1001</td>
-                    <td>Fatima R.</td>
-                    <td>3</td>
-                    <td>Rs.45/-</td>
-                    <td><span class="badge badge-warning">Processing</span></td>
+                    <td>{{ order.order_id }}</td>
+                    <td>{{ order.customer_name }}<br><small class="text-muted">{{ order.customer_email }}</small></td>
+                    <td>Rs.{{ order.totalPrice }}/-</td>
+                    <td><span class="badge badge-warning">{{ order.order_status }}</span></td>
                     <td class="nowrap">
-                      <button class="btn btn-sm btn-outline-primary" onclick="openOrder(1001)">View</button>
-                      <button class="btn btn-sm btn-success ml-1 admin-action" data-action="ship">Mark Shipped</button>
-                      <button class="btn btn-sm btn-danger ml-1 admin-only" data-action="cancel">Cancel</button>
+                      <form method="post" action="{% url 'admin_update_order_status' %}" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                        <select name="status" class="form-control form-control-sm d-inline-block" style="width:auto">
+                          <option value="Processing" {% if order.order_status == 'Processing' %}selected{% endif %}>Processing</option>
+                          <option value="Shipped" {% if order.order_status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                          <option value="Delivered" {% if order.order_status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                          <option value="Cancelled" {% if order.order_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-success ml-1">Save</button>
+                      </form>
                     </td>
                   </tr>
-                  <tr>
-                    <td>1000</td>
-                    <td>Ali K.</td>
-                    <td>1</td>
-                    <td>Rs.12/-</td>
-                    <td><span class="badge badge-success">Delivered</span></td>
-                    <td class="nowrap"><button class="btn btn-sm btn-outline-primary">View</button></td>
-                  </tr>
+                  {% empty %}
+                  <tr><td colspan="5" class="text-center text-muted">No orders yet.</td></tr>
+                  {% endfor %}
                 </tbody>
               </table>
             </div>
@@ -157,24 +153,34 @@
                   <tr><th>Order</th><th>Customer</th><th>Date</th><th>Total</th><th>Status</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
+                  {% for order in orders %}
                   <tr>
-                    <td>1003</td>
-                    <td>Saira J.</td>
-                    <td>2025-09-15</td>
-                    <td>Rs.60/-</td>
+                    <td>{{ order.order_id }}</td>
+                    <td>{{ order.customer_name }}</td>
+                    <td>{{ order.order_date }}</td>
+                    <td>Rs.{{ order.totalPrice }}/-</td>
                     <td>
-                      <select class="form-control form-control-sm status-select">
-                        <option>Processing</option>
-                        <option>Shipped</option>
-                        <option>Delivered</option>
-                        <option>Cancelled</option>
-                      </select>
+                      <form method="post" action="{% url 'admin_update_order_status' %}" class="form-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                        <select name="status" class="form-control form-control-sm status-select">
+                          <option value="Processing" {% if order.order_status == 'Processing' %}selected{% endif %}>Processing</option>
+                          <option value="Shipped" {% if order.order_status == 'Shipped' %}selected{% endif %}>Shipped</option>
+                          <option value="Delivered" {% if order.order_status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                          <option value="Cancelled" {% if order.order_status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-primary ml-1">Save</button>
+                      </form>
                     </td>
                     <td>
-                      <button class="btn btn-sm btn-primary">Save</button>
-                      <button class="btn btn-sm btn-outline-secondary ml-1 admin-only">Invoice</button>
+                      {% if user_role == 'admin' %}
+                      <a class="btn btn-sm btn-outline-secondary" href="{% url 'admin_order_invoice' order.order_id %}" target="_blank">Invoice</a>
+                      {% endif %}
                     </td>
                   </tr>
+                  {% empty %}
+                  <tr><td colspan="6" class="text-center text-muted">No orders found.</td></tr>
+                  {% endfor %}
                 </tbody>
               </table>
             </div>
@@ -186,9 +192,11 @@
 <section id="products" class="tab-pane">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>Product Management</h3>
+    {% if user_role == 'admin' %}
     <div>
-      <button id="btn-open-add" class="btn btn-sm btn-success admin-only">Add Product</button>
+      <button id="btn-open-add" class="btn btn-sm btn-success" data-toggle="modal" data-target="#addProductModal">Add Product</button>
     </div>
+    {% endif %}
   </div>
 
   <div class="card">
@@ -201,33 +209,46 @@
             </tr>
           </thead>
           <tbody>
-            <tr data-id="3001">
-              <td>3001</td>
-              <td><img src="{% static 'iffat/assets/img/products/pocket.jpg' %}" alt="Blanket" width="48"></td>
-              <td>Crochet small pocket pouch</td>
-              <td>Rs.45/-</td>
-              <td>3</td>
-              <td>Accessories</td>
-              <td>Cuto small pockets</td>
+            {% for p in products %}
+            <tr data-id="{{ p.item_id }}">
+              <td>{{ p.item_id }}</td>
+              <td>
+                {% if p.has_image %}
+                  <img src="data:image/jpeg;base64,{{ p.image_base64 }}" alt="{{ p.itemName }}" width="48" height="48" style="object-fit:cover;border:1px solid #ddd;">
+                {% else %}
+                  <span class="text-muted">No image</span>
+                {% endif %}
+              </td>
+              <td>{{ p.itemName }}</td>
+              <td>Rs.{{ p.basePrice }}/-</td>
+              <td>{{ p.total_stock }}</td>
+              <td>-</td>
+              <td>-</td>
               <td class="nowrap">
-                <button class="btn btn-sm btn-outline-primary btn-edit" data-id="3001">Edit</button>
-                <button class="btn btn-sm btn-danger ml-1 admin-only btn-delete" data-id="3001">Delete</button>
+                {% if user_role == 'admin' %}
+                <button type="button"
+                        class="btn btn-sm btn-outline-primary btn-edit"
+                        data-id="{{ p.item_id }}"
+                        data-name="{{ p.itemName }}"
+                        data-price="{{ p.basePrice }}"
+                        data-stock="{{ p.total_stock }}"
+                        data-has-image="{{ p.has_image }}"
+                        data-toggle="modal"
+                        data-target="#addProductModal">
+                  Edit
+                </button>
+                <form method="post" action="{% url 'admin_delete_product' p.item_id %}" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-danger ml-1 btn-delete" onclick="return confirm('Are you sure you want to delete this product?')">Delete</button>
+                </form>
+                {% else %}
+                <span class="text-muted">View only</span>
+                {% endif %}
               </td>
             </tr>
-
-            <tr data-id="3002">
-              <td>3002</td>
-              <td><img src="{% static 'iffat/assets/img/products/keychain.jpg' %}" alt="Keychain" width="48"></td>
-              <td>Crochet Keychain - Munchkin</td>
-              <td>Rs.8/-</td>
-              <td>15</td>
-              <td>Keychain</td>
-              <td>Mini teddy keychain, will make you smile</td>
-              <td class="nowrap">
-                <button class="btn btn-sm btn-outline-primary btn-edit" data-id="3002">Edit</button>
-                <button class="btn btn-sm btn-danger ml-1 admin-only btn-delete" data-id="3002">Delete</button>
-              </td>
-            </tr>
+            {% empty %}
+            <tr><td colspan="8" class="text-center text-muted">No products yet.</td></tr>
+            {% endfor %}
           </tbody>
         </table>
       </div>
@@ -237,57 +258,62 @@
   <!-- Add / Edit Product Modal -->
   <div class="modal fade" id="addProductModal" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
-      <form id="product-form" class="modal-content">
+      <form id="product-form" class="modal-content" method="post" action="{% url 'admin_save_product' %}">
+        {% csrf_token %}
         <div class="modal-header">
           <h5 class="modal-title">Add / Edit Product</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
         </div>
 
         <div class="modal-body">
-          <input type="hidden" id="prod-id">
+          <input type="hidden" id="prod-id" name="item_id">
 
           <div class="form-row">
             <div class="form-group col-md-6">
               <label for="prod-name">Product Name</label>
-              <input id="prod-name" class="form-control" required>
+              <input id="prod-name" name="name" class="form-control" required>
             </div>
             <div class="form-group col-md-3">
               <label for="prod-price">Price (PKR)</label>
-              <input id="prod-price" type="number" step="0.01" class="form-control" required>
+              <input id="prod-price" name="price" type="number" step="0.01" class="form-control" required>
             </div>
             <div class="form-group col-md-3">
               <label for="prod-stock">Stock</label>
-              <input id="prod-stock" type="number" class="form-control" required>
+              <input id="prod-stock" name="stock" type="number" class="form-control" required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group col-md-4">
               <label for="prod-category">Category</label>
-              <select id="prod-category" class="form-control">
+              <select id="prod-category" name="category" class="form-control">
+                {% for cat in categories %}
+                <option value="{{ cat.categoryName }}">{{ cat.categoryName }}</option>
+                {% empty %}
                 <option>Sweater</option>
                 <option>Keychain</option>
                 <option>Yarn</option>
                 <option>Tools</option>
                 <option>Accessories</option>
                 <option>Coasters</option>
+                {% endfor %}
               </select>
             </div>
             <div class="form-group col-md-8">
               <label for="prod-short">Short Description</label>
-              <input id="prod-short" class="form-control" placeholder="Short summary ">
+              <input id="prod-short" name="short_desc" class="form-control" placeholder="Short summary ">
             </div>
           </div>
 
           <div class="form-group">
             <label for="prod-desc">Full Description </label>
-            <textarea id="prod-desc" class="form-control" rows="4" placeholder="Detailed product description"></textarea>
+            <textarea id="prod-desc" name="full_desc" class="form-control" rows="4" placeholder="Detailed product description"></textarea>
           </div>
 
           <div class="form-row">
             <div class="form-group col-md-8">
               <label for="prod-image">Product Image URL</label>
-              <input id="prod-image" class="form-control" placeholder="assets/img/products/example.png">
+              <input id="prod-image" name="image" class="form-control" placeholder="assets/img/products/example.png">
               <small class="form-text text-muted">Upload images to the assets folder and paste the URL here.</small>
             </div>
             <div class="form-group col-md-4 text-center">
@@ -321,7 +347,30 @@
             <tr><th>User</th><th>Email</th><th>Role</th><th>Actions</th></tr>
           </thead>
           <tbody>
-            <!-- populated by JS -->
+            {% for u in users %}
+            <tr>
+              <td>{{ u.name }}</td>
+              <td>{{ u.email }}</td>
+              <td>{{ u.role }}</td>
+              <td>
+                <!-- This button still triggers JS to open the modal,
+                     but saving will post back to Django. -->
+                <button type="button"
+                        class="btn btn-sm btn-outline-primary"
+                        data-toggle="modal"
+                        data-target="#userDetailsModal"
+                        data-user-id="{{ u.user_id }}"
+                        data-user-name="{{ u.name }}"
+                        data-user-email="{{ u.email }}"
+                        data-user-role="{{ u.role }}"
+                        data-user-phone="{{ u.phone }}">
+                  Edit
+                </button>
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-center text-muted">No users found.</td></tr>
+            {% endfor %}
           </tbody>
         </table>
       </div>
@@ -331,26 +380,28 @@
 <!-- User Details / Edit Modal -->
 <div class="modal fade" id="userDetailsModal" tabindex="-1" role="dialog" aria-hidden="true">
   <div class="modal-dialog modal-lg" role="document">
-    <form id="user-details-form" class="modal-content">
+    <form id="user-details-form" class="modal-content" method="post" action="{% url 'admin_save_user' %}">
+      {% csrf_token %}
       <div class="modal-header">
         <h5 class="modal-title">User Details</h5>
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
       </div>
       <div class="modal-body">
-        <input type="hidden" id="ud-id">
+        <input type="hidden" id="ud-id" name="user_id">
         <div class="row">
           <div class="col-md-6">
             <h6>Profile</h6>
-            <div class="form-group"><label>Name</label><input id="ud-name" class="form-control"></div>
-            <div class="form-group"><label>Email</label><input id="ud-email" class="form-control"></div>
+            <div class="form-group"><label>Name</label><input id="ud-name" name="name" class="form-control"></div>
+            <div class="form-group"><label>Email</label><input id="ud-email" name="email" class="form-control"></div>
             <div class="form-group"><label>Role</label>
-              <select id="ud-role" class="form-control">
-                <option>customer</option>
-                <option>staff</option>
-                <option>admin</option>
+              <select id="ud-role" name="role" class="form-control" {% if user_role != 'admin' %}disabled{% endif %}>
+                <option value="customer">customer</option>
+                <option value="staff">staff</option>
+                <option value="admin">admin</option>
               </select>
+              {% if user_role != 'admin' %}<small class="text-muted">Only admins can change roles</small>{% endif %}
             </div>
-            <div class="form-group"><label>Phone</label><input id="ud-phone" class="form-control"></div>
+            <div class="form-group"><label>Phone</label><input id="ud-phone" name="phone" class="form-control"></div>
             <div class="form-group"><label>Notes</label><textarea id="ud-notes" class="form-control" rows="2"></textarea></div>
           </div>
 
@@ -402,118 +453,266 @@
       </section>
 
      <!-- Settings -->
-<!-- Settings -->
+{% if user_role == 'admin' %}
 <section id="settings" class="tab-pane">
   <h3>Settings <small class="text-muted">(Admin only)</small></h3>
 
-  <!-- Admin Toggle -->
-  <div class="form-check form-switch mb-4 admin-only">
-    <input class="form-check-input" type="checkbox" id="adminToggle" checked>
-    <label class="form-check-label" for="adminToggle">Admin Mode</label>
-  </div>
-
   <div class="card p-3">
-
     <!-- Payment Gateways -->
-    <h6><i class="bi bi-credit-card"></i> Payment Gateways</h6>
+    <h6><i class="fa fa-credit-card"></i> Payment Gateways</h6>
     <p id="paymentDesc">Cash, Card</p>
-    <button class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#paymentModal" class="admin-action">Edit Description</button>
+    <button class="btn btn-primary btn-sm mb-3" data-toggle="modal" data-target="#paymentModal">Edit Description</button>
 
     <!-- Shipping -->
-    <h6><i class="bi bi-truck"></i> Shipping Options</h6>
+    <h6><i class="fa fa-truck"></i> Shipping Options</h6>
     <p id="shippingDesc">Shipping zones and rates.</p>
-    <button class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#shippingModal" class="admin-action">Edit Description</button>
+    <button class="btn btn-primary btn-sm mb-3" data-toggle="modal" data-target="#shippingModal">Edit Description</button>
 
     <!-- Tax Settings -->
-    <h6><i class="bi bi-receipt"></i> Tax Settings</h6>
+    <h6><i class="fa fa-receipt"></i> Tax Settings</h6>
     <p id="taxDesc">Configure tax rates applied to orders.</p>
-    <button class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#taxModal" class="admin-action">Edit Tax</button>
+    <button class="btn btn-primary btn-sm mb-3" data-toggle="modal" data-target="#taxModal">Edit Tax</button>
 
     <!-- Store Policies -->
-    <h6><i class="bi bi-file-earmark-text"></i> Store Policies</h6>
+    <h6><i class="fa fa-file-text"></i> Store Policies</h6>
     <p id="policyDesc">Return, refund, and privacy policies.</p>
-    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#policyModal" class="admin-action">Edit Policies</button>
+    <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#policyModal">Edit Policies</button>
   </div>
 </section>
+{% endif %}
 
 <!-- MODALS -->
 
 <!-- Payment Modal -->
-<div class="modal fade" id="paymentModal" tabindex="-1">
-  <div class="modal-dialog">
+<div class="modal fade" id="paymentModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Edit Payment Description</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
       </div>
       <div class="modal-body">
         <textarea class="form-control" id="paymentInput"></textarea>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" onclick="savePayment()" data-bs-dismiss="modal">Save</button>
+        <button class="btn btn-primary" onclick="savePayment()" data-dismiss="modal">Save</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Shipping Modal -->
-<div class="modal fade" id="shippingModal" tabindex="-1">
-  <div class="modal-dialog">
+<div class="modal fade" id="shippingModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Edit Shipping Description</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
       </div>
       <div class="modal-body">
         <textarea class="form-control" id="shippingInput"></textarea>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" onclick="saveShipping()" data-bs-dismiss="modal">Save</button>
+        <button class="btn btn-primary" onclick="saveShipping()" data-dismiss="modal">Save</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Tax Modal -->
-<div class="modal fade" id="taxModal" tabindex="-1">
-  <div class="modal-dialog">
+<div class="modal fade" id="taxModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Edit Tax Settings</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
       </div>
       <div class="modal-body">
         <textarea class="form-control" id="taxInput"></textarea>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" onclick="saveTax()" data-bs-dismiss="modal">Save</button>
+        <button class="btn btn-primary" onclick="saveTax()" data-dismiss="modal">Save</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Policies Modal -->
-<div class="modal fade" id="policyModal" tabindex="-1">
-  <div class="modal-dialog">
+<div class="modal fade" id="policyModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Edit Store Policies</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span>&times;</span></button>
       </div>
       <div class="modal-body">
         <textarea class="form-control" id="policyInput"></textarea>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-primary" onclick="savePolicy()" data-bs-dismiss="modal">Save</button>
+        <button class="btn btn-primary" onclick="savePolicy()" data-dismiss="modal">Save</button>
       </div>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{% static 'iffat/js/vendor/jquery-1.12.0.min.js' %}"></script>
 <script src="{% static 'iffat/js/popper.min.js' %}"></script>
 <script src="{% static 'iffat/js/bootstrap.min.js' %}"></script>
-<script src="{% static 'iffat/js/all_js.js' %}"></script>
+<script>
+// Product Edit Modal Population
+$(document).on('click', '.btn-edit', function() {
+  var itemId = $(this).data('id');
+  var name = $(this).data('name');
+  var price = $(this).data('price');
+  var stock = $(this).data('stock');
+  var hasImage = $(this).data('has-image');
+  
+  $('#prod-id').val(itemId);
+  $('#prod-name').val(name);
+  $('#prod-price').val(price);
+  $('#prod-stock').val(stock);
+  $('#prod-image').val(''); // Clear image URL field - user needs to provide new URL if updating
+  
+  // Show existing image if available
+  if (hasImage && itemId) {
+    var imageUrl = '{% url "admin_product_image" 0 %}'.replace('0', itemId);
+    $('#prod-image-preview').attr('src', imageUrl);
+  } else {
+    $('#prod-image-preview').attr('src', '{% static "iffat/assets/img/products/blanket.png" %}');
+  }
+  
+  $('#addProductModal .modal-title').text('Edit Product');
+});
+
+// Reset modal for Add Product
+$('#btn-open-add').on('click', function() {
+  $('#prod-id').val('');
+  $('#prod-name').val('');
+  $('#prod-price').val('');
+  $('#prod-stock').val('');
+  $('#prod-short').val('');
+  $('#prod-desc').val('');
+  $('#prod-image').val('');
+  $('#addProductModal .modal-title').text('Add Product');
+});
+
+// Image preview
+$('#prod-image').on('input', function() {
+  var url = $(this).val();
+  if (url) {
+    $('#prod-image-preview').attr('src', url);
+  }
+});
+
+// User Modal Population
+$('#userDetailsModal').on('show.bs.modal', function(event) {
+  var button = $(event.relatedTarget);
+  var userId = button.data('user-id');
+  var userName = button.data('user-name');
+  var userEmail = button.data('user-email');
+  var userRole = button.data('user-role');
+  var userPhone = button.data('user-phone');
+  
+  $('#ud-id').val(userId);
+  $('#ud-name').val(userName);
+  $('#ud-email').val(userEmail);
+  $('#ud-role').val(userRole);
+  $('#ud-phone').val(userPhone || '');
+  
+  // Show/hide sections based on role
+  if (userRole === 'customer') {
+    $('#customer-stats').show();
+    $('#staff-info').hide();
+    // Load order history via AJAX
+    if (userId) {
+      var url = '/admin/users/' + userId + '/details/';
+      $.get(url)
+        .done(function(data) {
+          $('#ud-total-orders').text(data.order_stats.total_orders);
+          $('#ud-pending-orders').text(data.order_stats.pending_orders);
+          $('#ud-total-revenue').text('Rs.' + data.order_stats.total_revenue + '/-');
+          
+          var tbody = $('#ud-orders-tbody');
+          tbody.empty();
+          if (data.order_history && data.order_history.length > 0) {
+            data.order_history.forEach(function(order) {
+              tbody.append('<tr><td>' + order.order_id + '</td><td>' + order.order_date + '</td><td>' + order.order_status + '</td><td>Rs.' + order.totalPrice + '/-</td></tr>');
+            });
+          } else {
+            tbody.append('<tr><td colspan="4" class="text-muted">No orders</td></tr>');
+          }
+        })
+        .fail(function() {
+          $('#ud-orders-tbody').html('<tr><td colspan="4" class="text-danger">Error loading orders</td></tr>');
+        });
+    }
+  } else {
+    $('#customer-stats').hide();
+    $('#staff-info').show();
+  }
+});
+
+// Settings modals (simple localStorage for now)
+function savePayment() {
+  var text = $('#paymentInput').val();
+  $('#paymentDesc').text(text);
+  localStorage.setItem('paymentDesc', text);
+}
+
+function saveShipping() {
+  var text = $('#shippingInput').val();
+  $('#shippingDesc').text(text);
+  localStorage.setItem('shippingDesc', text);
+}
+
+function saveTax() {
+  var text = $('#taxInput').val();
+  $('#taxDesc').text(text);
+  localStorage.setItem('taxDesc', text);
+}
+
+function savePolicy() {
+  var text = $('#policyInput').val();
+  $('#policyDesc').text(text);
+  localStorage.setItem('policyDesc', text);
+}
+
+// Load saved settings
+$(document).ready(function() {
+  if (localStorage.getItem('paymentDesc')) {
+    $('#paymentDesc').text(localStorage.getItem('paymentDesc'));
+    $('#paymentInput').val(localStorage.getItem('paymentDesc'));
+  }
+  if (localStorage.getItem('shippingDesc')) {
+    $('#shippingDesc').text(localStorage.getItem('shippingDesc'));
+    $('#shippingInput').val(localStorage.getItem('shippingDesc'));
+  }
+  if (localStorage.getItem('taxDesc')) {
+    $('#taxDesc').text(localStorage.getItem('taxDesc'));
+    $('#taxInput').val(localStorage.getItem('taxDesc'));
+  }
+  if (localStorage.getItem('policyDesc')) {
+    $('#policyDesc').text(localStorage.getItem('policyDesc'));
+    $('#policyInput').val(localStorage.getItem('policyDesc'));
+  }
+  
+  // Update orders badge
+  $('#orders-badge').text({{ pending_count }});
+
+  // Simple client-side search on orders table
+  $('#order-search').on('keyup', function() {
+    var term = $(this).val().toLowerCase();
+    $('#orders-table tbody tr').each(function() {
+      var rowText = $(this).text().toLowerCase();
+      $(this).toggle(rowText.indexOf(term) !== -1);
+    });
+  });
+
+  // Hide admin-only elements for staff
+  {% if user_role != 'admin' %}
+  $('.admin-only').hide();
+  {% endif %}
+});
+</script>
 </body>
 </html>

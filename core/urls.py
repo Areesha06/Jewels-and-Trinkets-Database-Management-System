@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path("userside/", include("crochetStore.urls")),
-    path("", include("crochetAdmin.urls"))
+    path('adminDjango/', admin.site.urls),
+    path("", include("crochetStore.urls")),
+    path("admin/", include("crochetAdmin.urls"))
 ]
